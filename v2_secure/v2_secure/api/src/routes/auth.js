@@ -14,7 +14,7 @@ const { JWT_SECRET } = require('../middleware/auth');
 const transporter = nodemailer.createTransport({
     host: config.email.host,
     port: config.email.port,
-    secure: false, // true for 465, false for other ports
+    secure: config.email.port == 465, // true for 465 (SSL), false for other ports (TLS/STARTTLS)
     auth: {
         user: config.email.user,
         pass: config.email.pass,
