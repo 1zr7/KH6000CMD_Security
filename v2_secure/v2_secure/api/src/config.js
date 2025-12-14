@@ -1,10 +1,8 @@
 require('dotenv').config();
 
 const dbConfig = {
-  connectionString: process.env.DATABASE_URL,
-  ssl: (process.env.NODE_ENV === 'production' || (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('neon.tech')))
-    ? { rejectUnauthorized: false }
-    : false
+  connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_QKtZdaVU5Mc1@ep-broad-salad-ahtbkxfc-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require',
+  ssl: { rejectUnauthorized: false }
 };
 
 // Fallback for local development if DATABASE_URL is not set
