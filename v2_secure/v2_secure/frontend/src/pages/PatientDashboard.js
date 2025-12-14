@@ -58,21 +58,21 @@ function PatientDashboard({ user }) {
                                             <span className="font-semibold text-blue-600">{app.doctor_name || 'Unassigned'}</span>
                                             <span className="text-gray-500 text-sm ml-2">{new Date(app.date_time).toLocaleDateString()}</span>
                                         </div>
-                                        <span className="px-2 py-1 bg-gray-100 rounded text-xs uppercase font-bold">{app.status}</span>
+                                        <span className={`px-2 py-1 rounded text-xs uppercase font-bold ${app.status === 'completed' ? 'bg-brand-green/20 text-brand-green' : 'bg-gray-700 text-gray-300'}`}>{app.status}</span>
                                     </div>
                                     <p className="text-gray-700 mb-2">Reason: {app.reason}</p>
 
                                     {app.diagnosis && (
-                                        <div className="bg-red-50 p-3 rounded mt-2">
-                                            <p className="font-semibold text-red-800 text-sm">Diagnosis:</p>
-                                            <p className="text-red-700">{app.diagnosis}</p>
+                                        <div className="bg-red-900/20 p-3 rounded mt-2">
+                                            <p className="font-semibold text-red-400 text-sm">Diagnosis:</p>
+                                            <p className="text-red-300">{app.diagnosis}</p>
                                         </div>
                                     )}
 
                                     {app.drug_name && (
-                                        <div className="bg-green-50 p-3 rounded mt-2">
-                                            <p className="font-semibold text-green-800 text-sm">Medication:</p>
-                                            <p className="text-green-700">{app.drug_name} - {app.dosage}</p>
+                                        <div className="bg-brand-green/20 p-3 rounded mt-2">
+                                            <p className="font-semibold text-brand-green text-sm">Medication:</p>
+                                            <p className="text-brand-green">{app.drug_name} - {app.dosage}</p>
                                         </div>
                                     )}
                                 </div>
@@ -80,8 +80,8 @@ function PatientDashboard({ user }) {
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
 

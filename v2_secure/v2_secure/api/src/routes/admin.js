@@ -1,21 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const crypto = require('crypto');
-const md5 = (str) => crypto.createHash('md5').update(str).digest('hex');
 const bcrypt = require('bcrypt');
 
 // Create user (Admin only, but no check)
 router.post('/users', async (req, res, next) => {
     try {
         const { username, password, role, name, specialty } = req.body;
-        const hash = await bcrypt.hash(password, 10);
+        const saltRounds = 10;
+        const hash = await bcrypt.hash(password, saltRounds);
 
-        const userQuery = {
-            text: 'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id',
-            values: [username, hash, role]
-        };
-        const userRes = await db.query(userQuery);
+        // Parameterized Query
+        const userQuery = 'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id';
+        const userRes = await db.query(userQuery, [username, hash, role]);
         const userId = userRes.rows[0].id;
 
         if (role === 'doctor') {
@@ -34,7 +31,6 @@ router.post('/users', async (req, res, next) => {
 router.delete('/users/:id', async (req, res, next) => {
     try {
         const { id } = req.params;
-        // WARNING: SQL Injection
         const query = 'DELETE FROM users WHERE id = $1';
         await db.query(query, [id]);
         res.json({ message: 'User deleted' });

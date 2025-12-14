@@ -10,11 +10,18 @@ import NurseDashboard from './pages/NurseDashboard';
 import PatientDashboard from './pages/PatientDashboard';
 import PatientsList from './pages/PatientsList';
 import ChangePassword from './pages/ChangePassword';
+import MfaSetup from './pages/MfaSetup';
+import { logout } from './api';
 
 function App() {
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try {
+            await logout();
+        } catch (e) {
+            console.error('Logout failed', e);
+        }
         localStorage.removeItem('user');
         setUser(null);
     };
@@ -45,6 +52,7 @@ function App() {
 
                                 <Route path="/patients" element={user ? <PatientsList /> : <Navigate to="/login" />} />
                                 <Route path="/profile" element={user ? <ChangePassword user={user} /> : <Navigate to="/login" />} />
+                                <Route path="/mfa" element={user ? <MfaSetup user={user} /> : <Navigate to="/login" />} />
                             </Routes>
                         </div>
                     } />

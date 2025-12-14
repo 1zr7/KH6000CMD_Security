@@ -64,7 +64,7 @@ function AdminUsers() {
             </div>
 
             {lastResponse && (
-                <div className="mt-6 p-4 bg-gray-900 text-green-400 rounded font-mono text-sm overflow-auto">
+                <div className="mt-6 p-4 bg-gray-900 text-brand-green rounded font-mono text-sm overflow-auto">
                     <p className="text-gray-500 mb-2">// API Response</p>
                     <pre>{JSON.stringify(lastResponse, null, 2)}</pre>
                 </div>

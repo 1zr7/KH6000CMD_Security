@@ -3,16 +3,25 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
 const request = async (endpoint, options = {}) => {
     const res = await fetch(`${API_URL}${endpoint}`, {
         headers: { 'Content-Type': 'application/json', ...options.headers },
+        credentials: 'include', // Include cookies
         ...options,
     });
     const data = await res.json();
-    // Logging removed for security
+    console.log(`[API] ${endpoint}`, data); // WARNING: Insecure logging
     return data;
 };
 
-export const login = (username, password) => request('/auth/login', {
+export const login = (username, password, token) => request('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, token }),
+});
+
+export const logout = () => request('/auth/logout', { method: 'POST' });
+
+export const setupMFA = () => request('/auth/mfa/setup', { method: 'POST' });
+export const verifyMFA = (token, secret, username) => request('/auth/mfa/verify', {
+    method: 'POST',
+    body: JSON.stringify({ token, secret, username }),
 });
 
 export const register = (data) => request('/auth/register', {
@@ -40,6 +49,7 @@ export const createUser = (data) => request('/admin/users', {
 });
 export const deleteUser = (id) => request(`/admin/users/${id}`, { method: 'DELETE' });
 
+export const getDoctorDetails = (doctorId) => request(`/doctor/${doctorId}/details`);
 export const assignNurse = (doctorId, nurseId) => request(`/doctor/${doctorId}/assign-nurse`, {
     method: 'POST',
     body: JSON.stringify({ nurseId }),
@@ -50,6 +60,7 @@ export const assignPatient = (doctorId, patientId) => request(`/doctor/${doctorI
 });
 export const getDoctorAppointments = (doctorId) => request(`/doctor/${doctorId}/appointments`);
 export const acceptAppointment = (id) => request(`/doctor/appointments/${id}/accept`, { method: 'PUT' });
+export const rejectAppointment = (id) => request(`/doctor/appointments/${id}/reject`, { method: 'PUT' });
 export const createDiagnosis = (id, doctorId, description) => request(`/doctor/appointments/${id}/diagnosis`, {
     method: 'POST',
     body: JSON.stringify({ doctorId, description }),
@@ -60,3 +71,4 @@ export const createMedication = (id, data) => request(`/nurse/appointments/${id}
     method: 'POST',
     body: JSON.stringify(data),
 });
+export const deleteMedication = (id) => request(`/nurse/medications/${id}`, { method: 'DELETE' });

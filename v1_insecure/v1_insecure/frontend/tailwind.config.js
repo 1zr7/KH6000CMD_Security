@@ -7,8 +7,8 @@ module.exports = {
         extend: {
             colors: {
                 'brand-dark': '#0a0a0a',
-                'brand-green': '#00dc82',
-                'brand-green-dark': '#00a360',
+                'brand-green': '#2F8F6B',
+                'brand-green-dark': '#246e52',
             },
             animation: {
                 'blob': 'blob 7s infinite',

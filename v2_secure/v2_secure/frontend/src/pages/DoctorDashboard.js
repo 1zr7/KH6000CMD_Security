@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getUsers, assignNurse, assignPatient, getDoctorAppointments, acceptAppointment, createDiagnosis } from '../api';
+import { getUsers, assignNurse, assignPatient, getDoctorAppointments, acceptAppointment, rejectAppointment, createDiagnosis, getDoctorDetails } from '../api';
 
 function DoctorDashboard({ user }) {
     const [appointments, setAppointments] = useState([]);
@@ -7,7 +7,9 @@ function DoctorDashboard({ user }) {
     const [selectedNurse, setSelectedNurse] = useState('');
     const [selectedPatient, setSelectedPatient] = useState('');
     const [diagnosis, setDiagnosis] = useState({});
+    const [currentNurse, setCurrentNurse] = useState(null);
     const [lastResponse, setLastResponse] = useState(null);
+    const [expandedRow, setExpandedRow] = useState(null);
 
     useEffect(() => {
         loadData();
@@ -15,7 +17,25 @@ function DoctorDashboard({ user }) {
 
     const loadData = async () => {
         const apps = await getDoctorAppointments(user.id);
+        const details = await getDoctorDetails(user.id);
+
         setAppointments(apps);
+
+        if (details && details.nurse_name) {
+            setCurrentNurse(details.nurse_name);
+        } else {
+            setCurrentNurse(null);
+        }
+
+        // Pre-fill diagnosis state
+        const diagState = {};
+        apps.forEach(a => {
+            if (a.status === 'completed' && a.diagnosis_description) {
+                diagState[a.id] = a.diagnosis_description;
+            }
+        });
+        setDiagnosis(prev => ({ ...prev, ...diagState }));
+
         const allUsers = await getUsers();
         setUsers(allUsers);
     };
@@ -23,6 +43,7 @@ function DoctorDashboard({ user }) {
     const handleAssignNurse = async () => {
         const res = await assignNurse(user.id, selectedNurse);
         setLastResponse(res);
+        loadData();
     };
 
     const handleAssignPatient = async () => {
@@ -33,6 +54,12 @@ function DoctorDashboard({ user }) {
 
     const handleAccept = async (id) => {
         const res = await acceptAppointment(id);
+        setLastResponse(res);
+        loadData();
+    };
+
+    const handleReject = async (id) => {
+        const res = await rejectAppointment(id);
         setLastResponse(res);
         loadData();
     };
@@ -50,6 +77,12 @@ function DoctorDashboard({ user }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="card">
                     <h3 className="text-lg font-semibold mb-4">Assign Nurse</h3>
+                    {currentNurse && (
+                        <div className="mb-4 p-2 bg-brand-green/10 rounded border border-brand-green/20">
+                            <p className="text-sm text-gray-300">Current Nurse:</p>
+                            <p className="text-brand-green font-bold">{currentNurse}</p>
+                        </div>
+                    )}
                     <select className="input-field mb-2" onChange={e => setSelectedNurse(e.target.value)}>
                         <option value="">Select Nurse</option>
                         {users.filter(u => u.role === 'nurse').map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
@@ -78,32 +111,71 @@ function DoctorDashboard({ user }) {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-transparent divide-y divide-gray-700">
                             {appointments.map(app => (
-                                <tr key={app.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap">{app.patient_name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${app.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                            {app.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">{app.reason}</td>
-                                    <td className="px-6 py-4 space-y-2">
-                                        {app.status === 'pending' && (
-                                            <button onClick={() => handleAccept(app.id)} className="text-blue-600 hover:text-blue-900 mr-4">Accept</button>
-                                        )}
-                                        {app.status === 'accepted' && (
-                                            <div className="flex items-center space-x-2">
-                                                <input
-                                                    className="input-field text-sm"
-                                                    placeholder="Diagnosis..."
-                                                    onChange={e => setDiagnosis({ ...diagnosis, [app.id]: e.target.value })}
-                                                />
-                                                <button onClick={() => handleDiagnosis(app.id)} className="btn btn-primary text-xs">Diagnose</button>
+                                <React.Fragment key={app.id}>
+                                    <tr
+                                        onClick={() => setExpandedRow(expandedRow === app.id ? null : app.id)}
+                                        className="cursor-pointer hover:bg-gray-800 transition-colors"
+                                    >
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold">{app.patient_name}</span>
                                             </div>
-                                        )}
-                                    </td>
-                                </tr>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${app.status === 'completed' ? 'bg-brand-green/20 text-brand-green' : app.status === 'rejected' ? 'bg-red-900/30 text-red-500' : 'bg-yellow-900/30 text-yellow-500'}`}>
+                                                {app.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">{app.reason}</td>
+                                        <td className="px-6 py-4 space-y-2">
+                                            {app.medications && app.medications.length > 0 && (
+                                                <div className="mb-2 space-y-1">
+                                                    {app.medications.map((med, idx) => (
+                                                        <div key={idx} className="p-1 bg-brand-green/10 rounded border border-brand-green/20 text-xs text-brand-green">
+                                                            Med: {med.drug_name} ({med.dosage})
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {app.status === 'pending' && (
+                                                <div onClick={(e) => e.stopPropagation()}>
+                                                    <button onClick={() => handleAccept(app.id)} className="text-brand-green hover:text-brand-green-dark mr-4">Accept</button>
+                                                    <button onClick={() => handleReject(app.id)} className="text-red-500 hover:text-red-400 mr-4">Reject</button>
+                                                </div>
+                                            )}
+                                            {(app.status === 'accepted' || app.status === 'completed') && (
+                                                <div onClick={(e) => e.stopPropagation()} className="flex items-center space-x-2">
+                                                    <input
+                                                        className="input-field text-sm"
+                                                        placeholder="Diagnosis..."
+                                                        value={diagnosis[app.id] || ''}
+                                                        onChange={e => setDiagnosis({ ...diagnosis, [app.id]: e.target.value })}
+                                                    />
+                                                    <button onClick={() => handleDiagnosis(app.id)} className="btn btn-primary text-xs">
+                                                        {app.status === 'completed' ? 'Update' : 'Diagnose'}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                    {expandedRow === app.id && (
+                                        <tr className="bg-gray-800/50">
+                                            <td colSpan="4" className="px-6 py-4">
+                                                <div className="grid grid-cols-2 gap-4 text-sm text-gray-300">
+                                                    <div>
+                                                        <p><span className="font-bold text-gray-400">Appointment Date:</span> {new Date(app.date_time).toLocaleString()}</p>
+                                                        <p><span className="font-bold text-gray-400">Doctor Name:</span> {app.doctor_name || 'N/A'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p><span className="font-bold text-gray-400">Diagnosis Description:</span> {app.diagnosis_description || 'None'}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
                             ))}
                         </tbody>
                     </table>
@@ -111,7 +183,7 @@ function DoctorDashboard({ user }) {
             </div>
 
             {lastResponse && (
-                <div className="mt-6 p-4 bg-gray-900 text-green-400 rounded font-mono text-sm overflow-auto">
+                <div className="mt-6 p-4 bg-gray-900 text-brand-green rounded font-mono text-sm overflow-auto">
                     <p className="text-gray-500 mb-2">// API Response</p>
                     <pre>{JSON.stringify(lastResponse, null, 2)}</pre>
                 </div>

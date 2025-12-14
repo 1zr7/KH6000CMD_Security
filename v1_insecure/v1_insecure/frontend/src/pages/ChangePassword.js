@@ -15,7 +15,7 @@ function ChangePassword({ user }) {
         <div className="max-w-md mx-auto mt-10">
             <div className="card">
                 <h2 className="text-2xl font-bold mb-6">Change Password</h2>
-                {msg && <div className="bg-green-100 text-green-700 p-3 rounded mb-4">{msg}</div>}
+                {msg && <div className="bg-brand-green/20 text-brand-green-dark p-3 rounded mb-4">{msg}</div>}
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">New Password</label>

@@ -1,9 +1,8 @@
 const { Pool } = require('pg');
-const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 const config = require('./config');
 
 const pool = new Pool(config.db);
-const bcrypt = require('bcrypt');
 
 const seed = async () => {
   try {
@@ -21,7 +20,8 @@ const seed = async () => {
         id SERIAL PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
         password VARCHAR(100) NOT NULL,
-        role VARCHAR(20) NOT NULL
+        role VARCHAR(20) NOT NULL,
+        mfa_secret VARCHAR(100)
       )
     `);
 
@@ -111,43 +111,41 @@ const seed = async () => {
 
     const userMap = {};
 
+    const saltRounds = 10;
     for (const u of users) {
-      const hash = bcrypt.hashSync(u.password, 10);
-      const query = {
-        text: 'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id, username, role',
-        values: [u.username, hash, u.role],
-      };
+      const hash = await bcrypt.hash(u.password, saltRounds);
+      const query = 'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id, username, role';
       console.log(`Seeding user: ${u.username}`);
-      const res = await pool.query(query);
+      const res = await pool.query(query, [u.username, hash, u.role]);
       userMap[u.username] = res.rows[0];
     }
 
     // Seed Profiles
     // Doctor
-    await pool.query(`INSERT INTO doctors (user_id, name, specialty) VALUES (${userMap['dr_house'].id}, 'Gregory House', 'Diagnostician')`);
+    await pool.query('INSERT INTO doctors (user_id, name, specialty) VALUES ($1, $2, $3)', [userMap['dr_house'].id, 'Gregory House', 'Diagnostician']);
 
     // Nurse
-    await pool.query(`INSERT INTO nurses (user_id, name) VALUES (${userMap['nurse_joy'].id}, 'Joy')`);
+    await pool.query('INSERT INTO nurses (user_id, name) VALUES ($1, $2)', [userMap['nurse_joy'].id, 'Joy']);
 
     // Patients
-    await pool.query(`INSERT INTO patients (user_id, name, dob, address) VALUES (${userMap['jdoe'].id}, 'John Doe', '1980-01-01', '123 Main St')`);
-    await pool.query(`INSERT INTO patients (user_id, name, dob, address) VALUES (${userMap['asmith'].id}, 'Alice Smith', '1990-05-15', '456 Oak Ave')`);
+    await pool.query('INSERT INTO patients (user_id, name, dob, address) VALUES ($1, $2, $3, $4)', [userMap['jdoe'].id, 'John Doe', '1980-01-01', '123 Main St']);
+    await pool.query('INSERT INTO patients (user_id, name, dob, address) VALUES ($1, $2, $3, $4)', [userMap['asmith'].id, 'Alice Smith', '1990-05-15', '456 Oak Ave']);
 
     // Seed Appointments
     // 1. Pending
-    await pool.query(`INSERT INTO appointments (patient_id, doctor_id, status, reason) VALUES (${userMap['jdoe'].id}, ${userMap['dr_house'].id}, 'pending', 'Leg pain')`);
+    await pool.query('INSERT INTO appointments (patient_id, doctor_id, status, reason) VALUES ($1, $2, $3, $4)', [userMap['jdoe'].id, userMap['dr_house'].id, 'pending', 'Leg pain']);
 
     // 2. Accepted
-    const app2 = await pool.query(`INSERT INTO appointments (patient_id, doctor_id, status, reason) VALUES (${userMap['asmith'].id}, ${userMap['dr_house'].id}, 'accepted', 'Flu symptoms') RETURNING id`);
+    const app2 = await pool.query('INSERT INTO appointments (patient_id, doctor_id, status, reason) VALUES ($1, $2, $3, $4) RETURNING id', [userMap['asmith'].id, userMap['dr_house'].id, 'accepted', 'Flu symptoms']);
 
     // 3. Completed with Diagnosis and Meds
-    const app3 = await pool.query(`INSERT INTO appointments (patient_id, doctor_id, status, reason) VALUES (${userMap['jdoe'].id}, ${userMap['dr_house'].id}, 'completed', 'Migraine') RETURNING id`);
+    const app3 = await pool.query('INSERT INTO appointments (patient_id, doctor_id, status, reason) VALUES ($1, $2, $3, $4) RETURNING id', [userMap['jdoe'].id, userMap['dr_house'].id, 'completed', 'Migraine']);
 
     // Diagnosis
-    await pool.query(`INSERT INTO diagnoses (appointment_id, doctor_id, description) VALUES (${app3.rows[0].id}, ${userMap['dr_house'].id}, 'Chronic Migraine')`);
+    await pool.query('INSERT INTO diagnoses (appointment_id, doctor_id, description) VALUES ($1, $2, $3)', [app3.rows[0].id, userMap['dr_house'].id, 'Chronic Migraine']);
 
     // Medication
-    await pool.query(`INSERT INTO medications (appointment_id, nurse_id, patient_id, drug_name, dosage) VALUES (${app3.rows[0].id}, ${userMap['nurse_joy'].id}, ${userMap['jdoe'].id}, 'Sumatriptan', '50mg')`);
+    await pool.query('INSERT INTO medications (appointment_id, nurse_id, patient_id, drug_name, dosage) VALUES ($1, $2, $3, $4, $5)', [app3.rows[0].id, userMap['nurse_joy'].id, userMap['jdoe'].id, 'Sumatriptan', '50mg']);
 
     console.log('Database seeded successfully.');
     process.exit(0);

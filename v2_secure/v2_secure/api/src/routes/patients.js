@@ -17,9 +17,9 @@ router.get('/', async (req, res, next) => {
 router.get('/search', async (req, res, next) => {
     try {
         const { q } = req.query;
-        // WARNING: SQL Injection
-        const query = 'SELECT * FROM patients WHERE name ILIKE $1';
-        const result = await db.query(query, ['%' + q + '%']);
+        // Parameterized Query with Wildcards
+        const query = 'SELECT * FROM patients WHERE name LIKE $1';
+        const result = await db.query(query, [`%${q}%`]);
         res.json(result.rows);
     } catch (err) {
         next(err);
@@ -30,7 +30,6 @@ router.get('/search', async (req, res, next) => {
 router.get('/:id/appointments', async (req, res, next) => {
     try {
         const { id } = req.params;
-        // WARNING: SQL Injection
         const query = `
       SELECT a.*, d.name as doctor_name, 
              diag.description as diagnosis, 
@@ -52,9 +51,8 @@ router.get('/:id/appointments', async (req, res, next) => {
 router.post('/appointments', async (req, res, next) => {
     try {
         const { patientId, doctorId, reason } = req.body;
-        // WARNING: SQL Injection
-        const query = 'INSERT INTO appointments (patient_id, doctor_id, status, reason) VALUES ($1, $2, $3, $4) RETURNING *';
-        const result = await db.query(query, [patientId, doctorId, 'pending', reason]);
+        const query = 'INSERT INTO appointments (patient_id, doctor_id, status, reason) VALUES ($1, $2, \'pending\', $3) RETURNING *';
+        const result = await db.query(query, [patientId, doctorId, reason]);
         res.json(result.rows[0]);
     } catch (err) {
         next(err);

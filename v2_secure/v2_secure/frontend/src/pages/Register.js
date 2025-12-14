@@ -23,7 +23,7 @@ function Register() {
         e.preventDefault();
         try {
             const data = await register(formData);
-            if (data.success) {
+            if (data.id) {
                 navigate('/login');
             } else {
                 setError(data.error || 'Registration failed');
@@ -41,7 +41,7 @@ function Register() {
                         Create Account
                     </h2>
                     <p className="mt-2 text-center text-sm text-gray-400">
-                        Or <Link to="/login" className="font-medium text-brand-green hover:text-emerald-400">sign in to your existing account</Link>
+                        Or <Link to="/login" className="font-medium text-brand-green hover:text-brand-green-dark">sign in to your existing account</Link>
                     </p>
                 </div>
 
@@ -81,7 +81,7 @@ function Register() {
                     <div>
                         <button
                             type="submit"
-                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-full text-black bg-brand-green hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-green transition-all transform hover:scale-[1.02]"
+                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-full text-black bg-brand-green hover:bg-brand-green-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-green transition-all transform hover:scale-[1.02]"
                         >
                             Sign Up
                         </button>

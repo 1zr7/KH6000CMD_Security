@@ -14,7 +14,7 @@
   }
 
   .btn-primary {
-    @apply bg-brand-green text-black hover:bg-emerald-400 focus:ring-brand-green;
+    @apply bg-brand-green text-black hover:bg-brand-green-dark focus:ring-brand-green;
   }
 
   .btn-danger {

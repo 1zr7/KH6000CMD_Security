@@ -40,6 +40,7 @@ export const createUser = (data) => request('/admin/users', {
 });
 export const deleteUser = (id) => request(`/admin/users/${id}`, { method: 'DELETE' });
 
+export const getDoctorDetails = (doctorId) => request(`/doctor/${doctorId}/details`);
 export const assignNurse = (doctorId, nurseId) => request(`/doctor/${doctorId}/assign-nurse`, {
     method: 'POST',
     body: JSON.stringify({ nurseId }),
@@ -50,6 +51,7 @@ export const assignPatient = (doctorId, patientId) => request(`/doctor/${doctorI
 });
 export const getDoctorAppointments = (doctorId) => request(`/doctor/${doctorId}/appointments`);
 export const acceptAppointment = (id) => request(`/doctor/appointments/${id}/accept`, { method: 'PUT' });
+export const rejectAppointment = (id) => request(`/doctor/appointments/${id}/reject`, { method: 'PUT' });
 export const createDiagnosis = (id, doctorId, description) => request(`/doctor/appointments/${id}/diagnosis`, {
     method: 'POST',
     body: JSON.stringify({ doctorId, description }),
@@ -60,3 +62,4 @@ export const createMedication = (id, data) => request(`/nurse/appointments/${id}
     method: 'POST',
     body: JSON.stringify(data),
 });
+export const deleteMedication = (id) => request(`/nurse/medications/${id}`, { method: 'DELETE' });

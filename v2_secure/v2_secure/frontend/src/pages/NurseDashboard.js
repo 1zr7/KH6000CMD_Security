@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getNurseAppointments, createMedication } from '../api';
+import { getNurseAppointments, createMedication, deleteMedication } from '../api';
 
 function NurseDashboard({ user }) {
     const [appointments, setAppointments] = useState([]);
@@ -24,6 +24,13 @@ function NurseDashboard({ user }) {
         };
         const res = await createMedication(app.id, data);
         setLastResponse(res);
+        loadData();
+    };
+
+    const handleDeleteMedication = async (medId) => {
+        const res = await deleteMedication(medId);
+        setLastResponse(res);
+        loadData();
     };
 
     const updateMedData = (id, field, value) => {
@@ -49,13 +56,28 @@ function NurseDashboard({ user }) {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prescribe Medication</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-transparent divide-y divide-gray-700">
                             {appointments.map(app => (
                                 <tr key={app.id}>
                                     <td className="px-6 py-4 whitespace-nowrap">{app.patient_name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{app.doctor_name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{app.status}</td>
                                     <td className="px-6 py-4">
+                                        {app.medications && app.medications.length > 0 && (
+                                            <div className="mb-2 space-y-1">
+                                                {app.medications.map((med, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between p-1 bg-brand-green/10 rounded border border-brand-green/20 text-xs text-brand-green">
+                                                        <span>Current: {med.drug_name} ({med.dosage})</span>
+                                                        <button
+                                                            onClick={() => handleDeleteMedication(med.id)}
+                                                            className="ml-2 text-red-500 hover:text-red-400 font-bold"
+                                                        >
+                                                            x
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                         <div className="flex items-center space-x-2">
                                             <input
                                                 className="input-field text-sm w-32"
@@ -78,7 +100,7 @@ function NurseDashboard({ user }) {
             </div>
 
             {lastResponse && (
-                <div className="mt-6 p-4 bg-gray-900 text-green-400 rounded font-mono text-sm overflow-auto">
+                <div className="mt-6 p-4 bg-gray-900 text-brand-green rounded font-mono text-sm overflow-auto">
                     <p className="text-gray-500 mb-2">// API Response</p>
                     <pre>{JSON.stringify(lastResponse, null, 2)}</pre>
                 </div>

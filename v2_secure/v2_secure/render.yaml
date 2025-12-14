@@ -1,0 +1,32 @@
+services:
+  # Secure API
+  - type: web
+    name: v2-secure-api
+    env: node
+    buildCommand: cd api && npm install
+    startCommand: cd api && node src/seed.js && node src/index.js # Run seed on start for demo simplicity (or use build)
+    envVars:
+      - key: DATABASE_URL
+        sync: false # User must provide this (Neon Connection String)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        fromService:
+          type: static
+          name: v2-secure-frontend
+          envVarKey: RENDER_EXTERNAL_URL
+
+  # Secure Frontend
+  - type: static
+    name: v2-secure-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/build
+    envVars:
+      - key: REACT_APP_API_URL
+        fromService:
+          type: web
+          name: v2-secure-api
+          envVarKey: RENDER_EXTERNAL_URL

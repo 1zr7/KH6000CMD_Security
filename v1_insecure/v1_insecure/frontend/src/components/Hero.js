@@ -1,7 +1,33 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Hero = () => {
+    const navigate = useNavigate();
+
+    const handleGetStarted = () => {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user) {
+            switch (user.role) {
+                case 'doctor':
+                    navigate('/doctor');
+                    break;
+                case 'nurse':
+                    navigate('/nurse');
+                    break;
+                case 'admin':
+                    navigate('/admin');
+                    break;
+                case 'patient':
+                    navigate('/patient');
+                    break;
+                default:
+                    navigate('/login');
+            }
+        } else {
+            navigate('/register');
+        }
+    };
+
     return (
         <div className="w-full h-screen flex flex-col bg-black">
             {/* Top Section - Video Background (approx 55% height) */}
@@ -33,15 +59,15 @@ const Hero = () => {
 
                     {/* CTA / Right Side */}
                     <div className="flex-shrink-0 flex flex-col items-start md:items-end gap-6">
-                        <Link
-                            to="/register"
+                        <button
+                            onClick={handleGetStarted}
                             className="group flex items-center gap-2 px-8 py-4 border border-gray-600 rounded-full text-white hover:bg-white hover:text-black transition-all duration-300"
                         >
                             <span className="font-medium">Get Started</span>
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                             </svg>
-                        </Link>
+                        </button>
                     </div>
 
                 </div>

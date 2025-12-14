@@ -11,5 +11,10 @@
             "src": "/(.*)",
             "dest": "src/index.js"
         }
-    ]
+    ],
+    "env": {
+        "DATABASE_URL": "@database-url",
+        "JWT_SECRET": "@jwt-secret",
+        "NODE_ENV": "production"
+    }
 }

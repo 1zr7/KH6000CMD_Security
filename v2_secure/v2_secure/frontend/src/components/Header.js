@@ -9,7 +9,7 @@ function Header({ user, onLogout }) {
         <header className={`w-full z-50 transition-all duration-300 ${isHome ? 'absolute top-0 bg-transparent' : 'bg-black shadow-sm border-b border-gray-800'}`}>
             <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
                 <div className="flex items-center">
-                    <Link to="/" className={`text-2xl font-bold tracking-tighter text-green-500`}>
+                    <Link to="/" className={`text-2xl font-bold tracking-tighter text-brand-green`}>
                         HealthCareAlpha
                     </Link>
                 </div>
@@ -34,7 +34,7 @@ function Header({ user, onLogout }) {
                     ) : (
                         <>
                             <Link to="/login" className={`font-medium hover:text-brand-green transition-colors text-gray-300`}>Login</Link>
-                            <Link to="/register" className="px-5 py-2 bg-brand-green text-brand-dark font-bold rounded-full hover:bg-emerald-400 transition-all shadow-lg shadow-brand-green/20">Register</Link>
+                            <Link to="/register" className="px-5 py-2 bg-brand-green text-brand-dark font-bold rounded-full hover:bg-brand-green-dark transition-all shadow-lg shadow-brand-green/20">Register</Link>
                         </>
                     )}
                 </nav>

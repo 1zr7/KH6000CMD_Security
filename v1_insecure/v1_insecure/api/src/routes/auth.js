@@ -16,6 +16,13 @@ router.post('/register', async (req, res, next) => {
         const passwordHash = md5(password);
         const userRole = role || 'patient';
 
+        // Check if user exists
+        const checkQuery = `SELECT * FROM users WHERE username = '${username}'`;
+        const checkResult = await db.query(checkQuery);
+        if (checkResult.rows.length > 0) {
+            return res.status(400).json({ error: 'Username already exists' });
+        }
+
         // WARNING: intentionally vulnerable SQLi
         const query = `INSERT INTO users (username, password, role) VALUES ('${username}', '${passwordHash}', '${userRole}') RETURNING id, username, role`;
         console.log('Executing Register Query:', query);
