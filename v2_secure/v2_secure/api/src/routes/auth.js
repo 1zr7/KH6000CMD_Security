@@ -9,6 +9,7 @@ const { body, validationResult } = require('express-validator');
 const config = require('../config');
 const { logEvent } = require('../utils/audit');
 const { JWT_SECRET } = require('../middleware/auth');
+const { encrypt, decrypt } = require('../utils/encryption');
 
 // Email Transporter
 const transporter = nodemailer.createTransport({
@@ -51,7 +52,7 @@ router.post('/register', validateRegister, async (req, res, next) => {
             return res.status(400).json({ error: 'Username or Email already exists' });
         }
 
-        const { encrypt } = require('../utils/encryption');
+        // ...
 
         // ...
 
@@ -96,9 +97,9 @@ router.post('/login', validateLogin, async (req, res, next) => {
         const result = await db.query(query, [username]);
 
         // ...
-        const { decrypt } = require('../utils/encryption');
+        // ...
+        // ...
 
-        // ... (In login route)
         if (result.rows.length > 0) {
             const user = result.rows[0];
             const match = await bcrypt.compare(password, user.password);
@@ -116,8 +117,9 @@ router.post('/login', validateLogin, async (req, res, next) => {
             // Store OTP
             await db.query('UPDATE users SET otp_hash = $1, otp_expires = $2 WHERE id = $3', [otpHash, expires, user.id]);
 
+            
             // Decrypt Email
-            const { decrypt } = require('../utils/encryption');
+
             const decryptedEmail = decrypt(user.email); // Decrypt email for use
 
             // Send Email
@@ -186,8 +188,8 @@ router.post('/verify-otp', async (req, res, next) => {
 
         res.cookie('token', token, {
             httpOnly: true,
-            secure: true, // Always secure for Vercel deployment
-            sameSite: 'none', // Required for cross-site (different Vercel domains)
+            secure: true, 
+            sameSite: 'none', 
             maxAge: 30 * 60 * 1000 // 30 mins
         });
 

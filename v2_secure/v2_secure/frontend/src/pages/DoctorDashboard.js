@@ -37,6 +37,7 @@ function DoctorDashboard({ user }) {
         setDiagnosis(prev => ({ ...prev, ...diagState }));
 
         const allUsers = await getUsers();
+        console.log('Fetched Users:', allUsers); // DEBUG: Check console
         setUsers(allUsers);
     };
 
@@ -85,7 +86,7 @@ function DoctorDashboard({ user }) {
                     )}
                     <select className="input-field mb-2" onChange={e => setSelectedNurse(e.target.value)}>
                         <option value="">Select Nurse</option>
-                        {users.filter(u => u.role === 'nurse').map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
+                        {Array.isArray(users) && users.filter(u => u.role === 'nurse').map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
                     </select>
                     <button onClick={handleAssignNurse} className="btn btn-primary w-full">Assign</button>
                 </div>
@@ -93,7 +94,7 @@ function DoctorDashboard({ user }) {
                     <h3 className="text-lg font-semibold mb-4">Assign Patient</h3>
                     <select className="input-field mb-2" onChange={e => setSelectedPatient(e.target.value)}>
                         <option value="">Select Patient</option>
-                        {users.filter(u => u.role === 'patient').map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
+                        {Array.isArray(users) && users.filter(u => u.role === 'patient').map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
                     </select>
                     <button onClick={handleAssignPatient} className="btn btn-primary w-full">Assign</button>
                 </div>

@@ -32,13 +32,18 @@ router.get('/:doctorId/details', authenticate, authorize(['doctor', 'admin']), a
     }
 });
 
-// Assign nurse to doctor (Admin only)
-router.post('/:doctorId/assign-nurse', authenticate, authorize(['admin']), async (req, res, next) => {
+// Assign nurse to doctor (Admin or Doctor)
+router.post('/:doctorId/assign-nurse', authenticate, authorize(['admin', 'doctor']), async (req, res, next) => {
     try {
         const { doctorId } = req.params;
         const { nurseId } = req.body;
         // Validate IDs
         if (!nurseId || isNaN(parseInt(nurseId))) return res.status(400).json({ error: 'Invalid nurseId' });
+
+        // IDOR Check: Doctors can only assign to themselves
+        if (req.user.role === 'doctor' && req.user.id !== parseInt(doctorId)) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
 
         const query = 'UPDATE doctors SET assigned_nurse_id = $1 WHERE user_id = $2';
         await db.query(query, [nurseId, doctorId]);

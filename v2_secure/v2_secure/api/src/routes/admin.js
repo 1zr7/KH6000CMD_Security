@@ -7,10 +7,12 @@ const { authenticate, authorize } = require('../middleware/auth');
 const { logEvent } = require('../utils/audit');
 
 // Secure all admin routes
-router.use(authenticate, authorize(['admin']));
+// Secure admin routes individually or group them. 
+// Note: router.use(authenticate, authorize(['admin'])) was removed to allow specific routes to be shared.
+
 
 // Create user (Admin only)
-router.post('/users', async (req, res, next) => {
+router.post('/users', authenticate, authorize(['admin']), async (req, res, next) => {
     try {
         const { username, password, role, email, name, specialty } = req.body;
 
@@ -48,7 +50,7 @@ router.post('/users', async (req, res, next) => {
 });
 
 // Delete user
-router.delete('/users/:id', async (req, res, next) => {
+router.delete('/users/:id', authenticate, authorize(['admin']), async (req, res, next) => {
     try {
         const { id } = req.params;
         if (isNaN(parseInt(id))) return res.status(400).json({ error: 'Invalid User ID' });
@@ -61,8 +63,8 @@ router.delete('/users/:id', async (req, res, next) => {
     }
 });
 
-// List all users (helper for admin UI)
-router.get('/users', async (req, res, next) => {
+// List all users (helper for admin UI and Doctor assignment)
+router.get('/users', authenticate, async (req, res, next) => {
     try {
         const result = await db.query('SELECT id, username, role FROM users');
         res.json(result.rows);
@@ -72,7 +74,7 @@ router.get('/users', async (req, res, next) => {
 });
 
 // Get Audit Logs (Admin only, Read-only, Paginated)
-router.get('/logs', async (req, res, next) => {
+router.get('/logs', authenticate, authorize(['admin']), async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = 50;
