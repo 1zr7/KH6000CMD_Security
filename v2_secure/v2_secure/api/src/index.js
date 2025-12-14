@@ -68,11 +68,10 @@ app.get('/', (req, res) => {
 
 // Secure Error Handling
 app.use((err, req, res, next) => {
-    console.error(err.message); // Log message, not stack to user
+    console.error(err.message); // Log message internally
     res.status(500).json({
         error: 'Internal Server Error',
-        message: err.message, // Expose error for debugging
-        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        message: 'An unexpected error occurred' // Generic message
     });
 });
 
