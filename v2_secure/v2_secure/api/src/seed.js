@@ -109,7 +109,7 @@ const seed = async () => {
 
     // Seed Users
     const users = [
-      { username: 'admin', password: 'admin123', role: 'admin', email: 'admin@example.com' },
+      { username: 'admin', password: 'admin123', role: 'admin', email: 'aa2201459@tkh.edu.eg' },
       { username: 'dr_house', password: 'password', role: 'doctor', email: 'house@example.com' },
       { username: 'nurse_joy', password: 'password', role: 'nurse', email: 'joy@example.com' },
       { username: 'jdoe', password: 'password123', role: 'patient', email: 'jdoe@example.com' },
