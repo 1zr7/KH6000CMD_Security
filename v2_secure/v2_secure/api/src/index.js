@@ -26,8 +26,9 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS Config (Secure)
+const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: frontendUrl,
     credentials: true // Allow cookies
 }));
 
