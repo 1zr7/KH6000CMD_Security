@@ -77,6 +77,7 @@ app.use((err, req, res, next) => {
 if (process.env.NODE_ENV !== 'production') {
     app.listen(config.port, () => {
         console.log(`API running on port ${config.port}`);
+        console.log(`CORS Allowed Origin: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
     });
 }
 
