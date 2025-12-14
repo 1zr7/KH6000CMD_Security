@@ -21,7 +21,9 @@ const seed = async () => {
         username VARCHAR(50) UNIQUE NOT NULL,
         password VARCHAR(100) NOT NULL,
         role VARCHAR(20) NOT NULL,
-        mfa_secret VARCHAR(100)
+        email VARCHAR(100) UNIQUE, -- Added email for 2FA
+        otp_hash VARCHAR(100),     -- Store hashed OTP
+        otp_expires TIMESTAMP      -- OTP expiration
       )
     `);
 
@@ -102,11 +104,11 @@ const seed = async () => {
 
     // Seed Users
     const users = [
-      { username: 'admin', password: 'admin123', role: 'admin' },
-      { username: 'dr_house', password: 'password', role: 'doctor' },
-      { username: 'nurse_joy', password: 'password', role: 'nurse' },
-      { username: 'jdoe', password: 'password123', role: 'patient' },
-      { username: 'asmith', password: 'password123', role: 'patient' }
+      { username: 'admin', password: 'admin123', role: 'admin', email: 'admin@example.com' },
+      { username: 'dr_house', password: 'password', role: 'doctor', email: 'house@example.com' },
+      { username: 'nurse_joy', password: 'password', role: 'nurse', email: 'joy@example.com' },
+      { username: 'jdoe', password: 'password123', role: 'patient', email: 'jdoe@example.com' },
+      { username: 'asmith', password: 'password123', role: 'patient', email: 'asmith@example.com' }
     ];
 
     const userMap = {};
@@ -114,9 +116,9 @@ const seed = async () => {
     const saltRounds = 10;
     for (const u of users) {
       const hash = await bcrypt.hash(u.password, saltRounds);
-      const query = 'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id, username, role';
+      const query = 'INSERT INTO users (username, password, role, email) VALUES ($1, $2, $3, $4) RETURNING id, username, role';
       console.log(`Seeding user: ${u.username}`);
-      const res = await pool.query(query, [u.username, hash, u.role]);
+      const res = await pool.query(query, [u.username, hash, u.role, u.email]);
       userMap[u.username] = res.rows[0];
     }
 

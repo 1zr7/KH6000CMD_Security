@@ -3,7 +3,13 @@ const router = express.Router();
 const db = require('../db');
 const bcrypt = require('bcrypt');
 
-// Create user (Admin only, but no check)
+const { authenticate, authorize } = require('../middleware/auth');
+const { logEvent } = require('../utils/audit');
+
+// Secure all admin routes
+router.use(authenticate, authorize(['admin']));
+
+// Create user (Admin only)
 router.post('/users', async (req, res, next) => {
     try {
         const { username, password, role, name, specialty } = req.body;

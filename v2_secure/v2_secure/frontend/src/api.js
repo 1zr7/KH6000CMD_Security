@@ -11,18 +11,20 @@ const request = async (endpoint, options = {}) => {
     return data;
 };
 
-export const login = (username, password, token) => request('/auth/login', {
+export const login = (username, password) => request('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ username, password, token }),
+    body: JSON.stringify({ username, password }),
+});
+
+export const verifyOTP = (username, otp) => request('/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ username, otp }),
 });
 
 export const logout = () => request('/auth/logout', { method: 'POST' });
 
-export const setupMFA = () => request('/auth/mfa/setup', { method: 'POST' });
-export const verifyMFA = (token, secret, username) => request('/auth/mfa/verify', {
-    method: 'POST',
-    body: JSON.stringify({ token, secret, username }),
-});
+// Old MFA implementation removed/replaced
+// export const setupMFA = ...
 
 export const register = (data) => request('/auth/register', {
     method: 'POST',

@@ -2,10 +2,17 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// Get doctor details
-router.get('/:doctorId/details', async (req, res, next) => {
+const { authenticate, authorize } = require('../middleware/auth');
+const { logEvent } = require('../utils/audit');
+
+// Get doctor details (IDOR Protected)
+router.get('/:doctorId/details', authenticate, authorize(['doctor', 'admin']), async (req, res, next) => {
     try {
         const { doctorId } = req.params;
+        if (req.user.role === 'doctor' && req.user.id !== parseInt(doctorId)) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
         const query = `
             SELECT d.*, u.username as nurse_username, n.name as nurse_name
             FROM doctors d
@@ -35,7 +42,7 @@ router.post('/:doctorId/assign-nurse', async (req, res, next) => {
 
 // Assign patient (create appointment as 'assigned' or just link)
 // For this spec, we'll create an appointment with status 'assigned' to represent the link
-router.post('/:doctorId/assign-patient', async (req, res, next) => {
+router.post('/:doctorId/assign-patient', authenticate, authorize(['doctor', 'admin']), async (req, res, next) => {
     try {
         const { doctorId } = req.params;
         const { patientId } = req.body;
@@ -101,10 +108,13 @@ router.put('/appointments/:id/reject', async (req, res, next) => {
     }
 });
 
-// Get doctor's appointments
-router.get('/:doctorId/appointments', async (req, res, next) => {
+// Get doctor's appointments (IDOR Protected)
+router.get('/:doctorId/appointments', authenticate, authorize(['doctor', 'admin']), async (req, res, next) => {
     try {
         const { doctorId } = req.params;
+        if (req.user.role === 'doctor' && req.user.id !== parseInt(doctorId)) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         const query = `
       SELECT a.*, p.name as patient_name, p.id as patient_profile_id, d.id as diagnosis_id, d.description as diagnosis_description, doc.name as doctor_name,
              COALESCE(json_agg(json_build_object('id', m.id, 'drug_name', m.drug_name, 'dosage', m.dosage)) FILTER (WHERE m.id IS NOT NULL), '[]') as medications

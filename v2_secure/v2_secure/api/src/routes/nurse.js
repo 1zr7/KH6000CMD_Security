@@ -2,8 +2,11 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// Write medication
-router.post('/appointments/:id/medication', async (req, res, next) => {
+const { authenticate, authorize } = require('../middleware/auth');
+const { logEvent } = require('../utils/audit');
+
+// Write medication (Nurse/Admin only)
+router.post('/appointments/:id/medication', authenticate, authorize(['nurse', 'admin']), async (req, res, next) => {
     try {
         const { id } = req.params;
         const { nurseId, patientId, drugName, dosage } = req.body;
@@ -15,8 +18,8 @@ router.post('/appointments/:id/medication', async (req, res, next) => {
     }
 });
 
-// Delete medication
-router.delete('/medications/:id', async (req, res, next) => {
+// Delete medication (Nurse/Admin only)
+router.delete('/medications/:id', authenticate, authorize(['nurse', 'admin']), async (req, res, next) => {
     try {
         const { id } = req.params;
         const query = 'DELETE FROM medications WHERE id = $1 RETURNING *';
@@ -27,10 +30,13 @@ router.delete('/medications/:id', async (req, res, next) => {
     }
 });
 
-// Get nurse's assigned doctors and their appointments
-router.get('/:nurseId/appointments', async (req, res, next) => {
+// Get nurse's assigned doctors and their appointments (IDOR Protected)
+router.get('/:nurseId/appointments', authenticate, authorize(['nurse', 'admin']), async (req, res, next) => {
     try {
         const { nurseId } = req.params;
+        if (req.user.role === 'nurse' && req.user.id !== parseInt(nurseId)) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         // Find appointments via join to avoid two steps and potential SQLi with array joining
         const query = `
       SELECT a.*, p.name as patient_name, p.id as patient_profile_id, d.name as doctor_name, diag.id as diagnosis_id, diag.description as diagnosis_description,

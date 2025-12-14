@@ -20,4 +20,10 @@ if (!process.env.DATABASE_URL) {
 module.exports = {
   port: process.env.PORT || 4000,
   db: dbConfig,
+  email: {
+    host: process.env.EMAIL_HOST || 'smtp.example.com',
+    port: process.env.EMAIL_PORT || 587,
+    user: process.env.EMAIL_USER || 'user@example.com',
+    pass: process.env.EMAIL_PASS || 'password',
+  },
 };

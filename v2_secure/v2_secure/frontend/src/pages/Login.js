@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { login } from '../api';
+import { login, verifyOTP } from '../api';
 
 function Login({ setUser }) {
     const [username, setUsername] = useState('');
@@ -14,31 +14,41 @@ function Login({ setUser }) {
         e.preventDefault();
         setError('');
         try {
-            const data = await login(username, password, token);
-
-            if (data.mfaRequired) {
-                setShowMfa(true);
-                setError('MFA Token Required');
-                return;
-            }
-
-            if (data.user) {
-                localStorage.setItem('user', JSON.stringify(data.user));
-                setUser(data.user);
-
-                // Redirect based on role
-                switch (data.user.role) {
-                    case 'admin': navigate('/admin'); break;
-                    case 'doctor': navigate('/doctor'); break;
-                    case 'nurse': navigate('/nurse'); break;
-                    case 'patient': navigate('/patient'); break;
-                    default: navigate('/');
+            if (showMfa) {
+                // Step 2: Verify OTP
+                const data = await verifyOTP(username, token);
+                if (data.user) {
+                    handleLoginSuccess(data.user);
+                } else {
+                    setError(data.error || 'Verification failed');
                 }
             } else {
-                setError(data.error || 'Login failed');
+                // Step 1: Login
+                const data = await login(username, password);
+                if (data.mfaRequired) {
+                    setShowMfa(true);
+                    setError('Code sent to your email'); // Info message
+                } else if (data.user) {
+                    // If 2FA disabled (future proof), just login
+                    handleLoginSuccess(data.user);
+                } else {
+                    setError(data.error || 'Login failed');
+                }
             }
         } catch (err) {
-            setError('Network error');
+            setError(err.message || 'Network error');
+        }
+    };
+
+    const handleLoginSuccess = (user) => {
+        localStorage.setItem('user', JSON.stringify(user));
+        setUser(user);
+        switch (user.role) {
+            case 'admin': navigate('/admin'); break;
+            case 'doctor': navigate('/doctor'); break;
+            case 'nurse': navigate('/nurse'); break;
+            case 'patient': navigate('/patient'); break;
+            default: navigate('/');
         }
     };
 
