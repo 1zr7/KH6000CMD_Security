@@ -26,9 +26,9 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS Config (Secure)
-const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+const frontendUrl = process.env.FRONTEND_URL || 'https://v2-secure-fe.vercel.app';
 app.use(cors({
-    origin: frontendUrl,
+    origin: [frontendUrl, 'http://localhost:3000'],
     credentials: true // Allow cookies
 }));
 

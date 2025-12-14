@@ -167,8 +167,8 @@ router.post('/verify-otp', async (req, res, next) => {
 
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            secure: true, // Always secure for Vercel deployment
+            sameSite: 'none', // Required for cross-site (different Vercel domains)
             maxAge: 30 * 60 * 1000 // 30 mins
         });
 
