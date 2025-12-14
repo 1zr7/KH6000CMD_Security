@@ -21,6 +21,11 @@ router.get('/', authenticate, authorize(['admin', 'doctor', 'nurse']), async (re
 router.get('/search', authenticate, authorize(['admin', 'doctor', 'nurse']), async (req, res, next) => {
     try {
         const { q } = req.query;
+
+        if (!q || typeof q !== 'string') {
+            return res.status(400).json({ error: 'Search query required' });
+        }
+
         const query = 'SELECT * FROM patients WHERE name LIKE $1';
         const result = await db.query(query, [`%${q}%`]);
         res.json(result.rows);
@@ -33,6 +38,7 @@ router.get('/search', authenticate, authorize(['admin', 'doctor', 'nurse']), asy
 router.get('/:id/appointments', authenticate, async (req, res, next) => {
     try {
         const { id } = req.params;
+        if (isNaN(parseInt(id))) return res.status(400).json({ error: 'Invalid ID' });
 
         // IDOR Check: Users can only see their own appointments unless they are medical staff
         if (req.user.role === 'patient' && req.user.id !== parseInt(id)) {
@@ -61,6 +67,14 @@ router.get('/:id/appointments', authenticate, async (req, res, next) => {
 router.post('/appointments', authenticate, authorize(['patient']), async (req, res, next) => {
     try {
         const { doctorId, reason } = req.body;
+
+        if (!doctorId || isNaN(parseInt(doctorId))) {
+            return res.status(400).json({ error: 'Invalid Doctor ID' });
+        }
+        if (!reason || typeof reason !== 'string') {
+            return res.status(400).json({ error: 'Reason is required' });
+        }
+
         // Securely use ID from token, ignore body ID
         const patientId = req.user.id;
 

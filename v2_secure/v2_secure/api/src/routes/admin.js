@@ -13,6 +13,19 @@ router.use(authenticate, authorize(['admin']));
 router.post('/users', async (req, res, next) => {
     try {
         const { username, password, role, name, specialty } = req.body;
+
+        // Input Validation
+        if (!username || !password || !role) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        if (password.length < 8) {
+            return res.status(400).json({ error: 'Password must be at least 8 characters' });
+        }
+        const validRoles = ['admin', 'doctor', 'nurse', 'patient'];
+        if (!validRoles.includes(role)) {
+            return res.status(400).json({ error: 'Invalid role' });
+        }
+
         const saltRounds = 10;
         const hash = await bcrypt.hash(password, saltRounds);
 
@@ -37,6 +50,7 @@ router.post('/users', async (req, res, next) => {
 router.delete('/users/:id', async (req, res, next) => {
     try {
         const { id } = req.params;
+        if (isNaN(parseInt(id))) return res.status(400).json({ error: 'Invalid User ID' });
         const query = 'DELETE FROM users WHERE id = $1';
         await db.query(query, [id]);
         res.json({ message: 'User deleted' });

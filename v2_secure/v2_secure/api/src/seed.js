@@ -9,10 +9,15 @@ const seed = async () => {
     console.log('Connecting to database...');
 
     // Drop tables in order
-    const tables = ['medications', 'diagnoses', 'appointments', 'doctor_patients', 'nurses', 'doctors', 'patients', 'audit_log', 'users'];
-    for (const t of tables) {
-      await pool.query(`DROP TABLE IF EXISTS ${t} CASCADE`);
-    }
+    await pool.query('DROP TABLE IF EXISTS medications CASCADE');
+    await pool.query('DROP TABLE IF EXISTS diagnoses CASCADE');
+    await pool.query('DROP TABLE IF EXISTS appointments CASCADE');
+    await pool.query('DROP TABLE IF EXISTS doctor_patients CASCADE');
+    await pool.query('DROP TABLE IF EXISTS nurses CASCADE');
+    await pool.query('DROP TABLE IF EXISTS doctors CASCADE');
+    await pool.query('DROP TABLE IF EXISTS patients CASCADE');
+    await pool.query('DROP TABLE IF EXISTS audit_log CASCADE');
+    await pool.query('DROP TABLE IF EXISTS users CASCADE');
 
     // Create Users Table
     await pool.query(`

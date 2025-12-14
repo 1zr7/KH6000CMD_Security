@@ -9,6 +9,7 @@ const { logEvent } = require('../utils/audit');
 router.get('/:doctorId/details', authenticate, authorize(['doctor', 'admin']), async (req, res, next) => {
     try {
         const { doctorId } = req.params;
+        if (isNaN(parseInt(doctorId))) return res.status(400).json({ error: 'Invalid Doctor ID' });
         if (req.user.role === 'doctor' && req.user.id !== parseInt(doctorId)) {
             return res.status(403).json({ error: 'Forbidden' });
         }
@@ -27,11 +28,14 @@ router.get('/:doctorId/details', authenticate, authorize(['doctor', 'admin']), a
     }
 });
 
-// Assign nurse to doctor
-router.post('/:doctorId/assign-nurse', async (req, res, next) => {
+// Assign nurse to doctor (Admin only)
+router.post('/:doctorId/assign-nurse', authenticate, authorize(['admin']), async (req, res, next) => {
     try {
         const { doctorId } = req.params;
         const { nurseId } = req.body;
+        // Validate IDs
+        if (!nurseId || isNaN(parseInt(nurseId))) return res.status(400).json({ error: 'Invalid nurseId' });
+
         const query = 'UPDATE doctors SET assigned_nurse_id = $1 WHERE user_id = $2';
         await db.query(query, [nurseId, doctorId]);
         res.json({ message: 'Nurse assigned', doctorId, nurseId });
@@ -46,6 +50,16 @@ router.post('/:doctorId/assign-patient', authenticate, authorize(['doctor', 'adm
     try {
         const { doctorId } = req.params;
         const { patientId } = req.body;
+
+        // IDOR Check
+        if (req.user.role === 'doctor' && req.user.id !== parseInt(doctorId)) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        if (!patientId || isNaN(parseInt(patientId))) {
+            return res.status(400).json({ error: 'Invalid Patient ID' });
+        }
+
         const query = 'INSERT INTO appointments (patient_id, doctor_id, status, reason) VALUES ($1, $2, \'assigned\', \'Doctor assigned\') RETURNING *';
         const result = await db.query(query, [patientId, doctorId]);
         res.json(result.rows[0]);
@@ -55,10 +69,22 @@ router.post('/:doctorId/assign-patient', authenticate, authorize(['doctor', 'adm
 });
 
 // Write or Update diagnosis
-router.post('/appointments/:id/diagnosis', async (req, res, next) => {
+router.post('/appointments/:id/diagnosis', authenticate, authorize(['doctor']), async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { doctorId, description } = req.body;
+        const { description } = req.body;
+        const doctorId = req.user.id; // Use authenticated ID
+
+        if (!description || typeof description !== 'string' || description.trim() === '') {
+            return res.status(400).json({ error: 'Description is required' });
+        }
+
+        // Verify appointment belongs to doctor
+        const apptQuery = 'SELECT * FROM appointments WHERE id = $1 AND doctor_id = $2';
+        const apptResult = await db.query(apptQuery, [id, doctorId]);
+        if (apptResult.rows.length === 0) {
+            return res.status(403).json({ error: 'Forbidden: Appointment not found or not yours' });
+        }
 
         // Check if diagnosis exists
         const checkQuery = 'SELECT * FROM diagnoses WHERE appointment_id = $1';
@@ -77,6 +103,7 @@ router.post('/appointments/:id/diagnosis', async (req, res, next) => {
 
         // Also update appointment status
         await db.query('UPDATE appointments SET status = \'completed\' WHERE id = $1', [id]);
+        await logEvent('DIAGNOSIS_UPDATED', req.user.id, { appointmentId: id });
 
         res.json(result.rows[0]);
     } catch (err) {
@@ -85,9 +112,13 @@ router.post('/appointments/:id/diagnosis', async (req, res, next) => {
 });
 
 // Accept appointment
-router.put('/appointments/:id/accept', async (req, res, next) => {
+router.put('/appointments/:id/accept', authenticate, authorize(['doctor']), async (req, res, next) => {
     try {
         const { id } = req.params;
+        // Verify ownership
+        const appt = await db.query('SELECT * FROM appointments WHERE id = $1 AND doctor_id = $2', [id, req.user.id]);
+        if (appt.rows.length === 0) return res.status(403).json({ error: 'Forbidden' });
+
         const query = 'UPDATE appointments SET status = \'accepted\' WHERE id = $1 RETURNING *';
         const result = await db.query(query, [id]);
         res.json(result.rows[0]);
@@ -97,9 +128,13 @@ router.put('/appointments/:id/accept', async (req, res, next) => {
 });
 
 // Reject appointment
-router.put('/appointments/:id/reject', async (req, res, next) => {
+router.put('/appointments/:id/reject', authenticate, authorize(['doctor']), async (req, res, next) => {
     try {
         const { id } = req.params;
+        // Verify ownership
+        const appt = await db.query('SELECT * FROM appointments WHERE id = $1 AND doctor_id = $2', [id, req.user.id]);
+        if (appt.rows.length === 0) return res.status(403).json({ error: 'Forbidden' });
+
         const query = 'UPDATE appointments SET status = \'rejected\' WHERE id = $1 RETURNING *';
         const result = await db.query(query, [id]);
         res.json(result.rows[0]);
@@ -112,6 +147,7 @@ router.put('/appointments/:id/reject', async (req, res, next) => {
 router.get('/:doctorId/appointments', authenticate, authorize(['doctor', 'admin']), async (req, res, next) => {
     try {
         const { doctorId } = req.params;
+        if (isNaN(parseInt(doctorId))) return res.status(400).json({ error: 'Invalid Doctor ID' });
         if (req.user.role === 'doctor' && req.user.id !== parseInt(doctorId)) {
             return res.status(403).json({ error: 'Forbidden' });
         }

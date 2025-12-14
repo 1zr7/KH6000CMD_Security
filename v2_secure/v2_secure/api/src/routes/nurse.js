@@ -9,7 +9,17 @@ const { logEvent } = require('../utils/audit');
 router.post('/appointments/:id/medication', authenticate, authorize(['nurse', 'admin']), async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { nurseId, patientId, drugName, dosage } = req.body;
+        let { nurseId, patientId, drugName, dosage } = req.body;
+
+        // Force nurseId to be the logged in user if they are a nurse
+        if (req.user.role === 'nurse') {
+            nurseId = req.user.id;
+        }
+
+        if (!drugName || !dosage || !patientId) {
+            return res.status(400).json({ error: 'Missing medication details' });
+        }
+
         const query = 'INSERT INTO medications (appointment_id, nurse_id, patient_id, drug_name, dosage) VALUES ($1, $2, $3, $4, $5) RETURNING *';
         const result = await db.query(query, [id, nurseId, patientId, drugName, dosage]);
         res.json(result.rows[0]);
@@ -22,6 +32,7 @@ router.post('/appointments/:id/medication', authenticate, authorize(['nurse', 'a
 router.delete('/medications/:id', authenticate, authorize(['nurse', 'admin']), async (req, res, next) => {
     try {
         const { id } = req.params;
+        if (isNaN(parseInt(id))) return res.status(400).json({ error: 'Invalid ID' });
         const query = 'DELETE FROM medications WHERE id = $1 RETURNING *';
         const result = await db.query(query, [id]);
         res.json(result.rows[0]);
@@ -34,6 +45,7 @@ router.delete('/medications/:id', authenticate, authorize(['nurse', 'admin']), a
 router.get('/:nurseId/appointments', authenticate, authorize(['nurse', 'admin']), async (req, res, next) => {
     try {
         const { nurseId } = req.params;
+        if (isNaN(parseInt(nurseId))) return res.status(400).json({ error: 'Invalid Nurse ID' });
         if (req.user.role === 'nurse' && req.user.id !== parseInt(nurseId)) {
             return res.status(403).json({ error: 'Forbidden' });
         }

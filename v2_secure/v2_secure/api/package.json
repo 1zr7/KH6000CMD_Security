@@ -25,6 +25,8 @@
     "speakeasy": "^2.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "jest": "^30.2.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^7.1.4"
   }
 }
