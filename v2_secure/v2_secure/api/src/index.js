@@ -28,7 +28,7 @@ app.use(limiter);
 // CORS Config (Secure)
 const frontendUrl = process.env.FRONTEND_URL || 'https://v2-secure-fe.vercel.app';
 app.use(cors({
-    origin: [frontendUrl, 'http://localhost:3000'],
+    origin: [frontendUrl, 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
     credentials: true // Allow cookies
 }));
 

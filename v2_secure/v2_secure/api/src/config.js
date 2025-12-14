@@ -2,7 +2,9 @@ require('dotenv').config();
 
 const dbConfig = {
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false } // Force SSL for Neon/Vercel
+  ssl: (process.env.NODE_ENV === 'production' || (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('neon.tech')))
+    ? { rejectUnauthorized: false }
+    : false
 };
 
 // Fallback for local development if DATABASE_URL is not set
