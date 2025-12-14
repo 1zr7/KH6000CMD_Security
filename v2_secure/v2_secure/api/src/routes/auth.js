@@ -108,17 +108,23 @@ router.post('/login', validateLogin, async (req, res, next) => {
             // In a real app, you would handle email failures gracefully
             try {
                 if (config.email.user !== 'user@example.com') {
+                    console.log(`[AUTH] Sending OTP for ${username} to ${user.email}`);
                     await transporter.sendMail({
                         from: config.email.user,
                         to: user.email,
                         subject: 'Your Login Validation Code',
                         text: `Your code is: ${otp}`,
                     });
+                    console.log(`[AUTH] OTP sent to ${user.email}`);
                 } else {
                     console.log(`[DEV] OTP for ${username}: ${otp}`); // Dev logs for testing
                 }
             } catch (emailErr) {
-                console.error('Email failed', emailErr);
+                console.error('[AUTH] Email failed', emailErr);
+                // In production, we might want to return 500 here if email is critical, 
+                // but for now we proceed to let user know they need an OTP. 
+                // However, if email fails, they can't login.
+                return res.status(500).json({ error: 'Failed to send OTP email', details: emailErr.message });
             }
 
             res.json({ message: 'OTP sent to email', mfaRequired: true, username: user.username });
