@@ -118,41 +118,49 @@ const seed = async () => {
 
     const userMap = {};
 
+    const { encrypt } = require('./utils/encryption');
     const saltRounds = 10;
+
+
+    // ... (Inside loop)
     for (const u of users) {
       const hash = await bcrypt.hash(u.password, saltRounds);
+      const encryptedEmail = encrypt(u.email);
       const query = 'INSERT INTO users (username, password, role, email) VALUES ($1, $2, $3, $4) RETURNING id, username, role';
       console.log(`Seeding user: ${u.username}`);
-      const res = await pool.query(query, [u.username, hash, u.role, u.email]);
+      const res = await pool.query(query, [u.username, hash, u.role, encryptedEmail]);
       userMap[u.username] = res.rows[0];
     }
 
     // Seed Profiles
     // Doctor
-    await pool.query('INSERT INTO doctors (user_id, name, specialty) VALUES ($1, $2, $3)', [userMap['dr_house'].id, 'Gregory House', 'Diagnostician']);
+    await pool.query('INSERT INTO doctors (user_id, name, specialty) VALUES ($1, $2, $3)', [userMap['dr_house'].id, 'Dr. Ahmed Khaled', 'Internist']);
 
     // Nurse
-    await pool.query('INSERT INTO nurses (user_id, name) VALUES ($1, $2)', [userMap['nurse_joy'].id, 'Joy']);
+    await pool.query('INSERT INTO nurses (user_id, name) VALUES ($1, $2)', [userMap['nurse_joy'].id, 'Nurse Mona']);
 
     // Patients
-    await pool.query('INSERT INTO patients (user_id, name, dob, address) VALUES ($1, $2, $3, $4)', [userMap['jdoe'].id, 'John Doe', '1980-01-01', '123 Main St']);
-    await pool.query('INSERT INTO patients (user_id, name, dob, address) VALUES ($1, $2, $3, $4)', [userMap['asmith'].id, 'Alice Smith', '1990-05-15', '456 Oak Ave']);
+    const addr1 = encrypt('123 Tahrir Sq');
+    const addr2 = encrypt('456 Zamalek St');
+    await pool.query('INSERT INTO patients (user_id, name, dob, address) VALUES ($1, $2, $3, $4)', [userMap['jdoe'].id, 'Mohamed Ali', '1980-01-01', addr1]);
+    await pool.query('INSERT INTO patients (user_id, name, dob, address) VALUES ($1, $2, $3, $4)', [userMap['asmith'].id, 'Fatima Hassan', '1990-05-15', addr2]);
 
     // Seed Appointments
     // 1. Pending
-    await pool.query('INSERT INTO appointments (patient_id, doctor_id, status, reason) VALUES ($1, $2, $3, $4)', [userMap['jdoe'].id, userMap['dr_house'].id, 'pending', 'Leg pain']);
+    await pool.query('INSERT INTO appointments (patient_id, doctor_id, status, reason) VALUES ($1, $2, $3, $4)', [userMap['jdoe'].id, userMap['dr_house'].id, 'pending', 'Stomach ache']);
 
     // 2. Accepted
-    const app2 = await pool.query('INSERT INTO appointments (patient_id, doctor_id, status, reason) VALUES ($1, $2, $3, $4) RETURNING id', [userMap['asmith'].id, userMap['dr_house'].id, 'accepted', 'Flu symptoms']);
+    await pool.query('INSERT INTO appointments (patient_id, doctor_id, status, reason) VALUES ($1, $2, $3, $4) RETURNING id', [userMap['asmith'].id, userMap['dr_house'].id, 'accepted', 'Fever']);
 
     // 3. Completed with Diagnosis and Meds
     const app3 = await pool.query('INSERT INTO appointments (patient_id, doctor_id, status, reason) VALUES ($1, $2, $3, $4) RETURNING id', [userMap['jdoe'].id, userMap['dr_house'].id, 'completed', 'Migraine']);
 
     // Diagnosis
-    await pool.query('INSERT INTO diagnoses (appointment_id, doctor_id, description) VALUES ($1, $2, $3)', [app3.rows[0].id, userMap['dr_house'].id, 'Chronic Migraine']);
+    const diagDesc = encrypt('Chronic Migraine');
+    await pool.query('INSERT INTO diagnoses (appointment_id, doctor_id, description) VALUES ($1, $2, $3)', [app3.rows[0].id, userMap['dr_house'].id, diagDesc]);
 
     // Medication
-    await pool.query('INSERT INTO medications (appointment_id, nurse_id, patient_id, drug_name, dosage) VALUES ($1, $2, $3, $4, $5)', [app3.rows[0].id, userMap['nurse_joy'].id, userMap['jdoe'].id, 'Sumatriptan', '50mg']);
+    await pool.query('INSERT INTO medications (appointment_id, nurse_id, patient_id, drug_name, dosage) VALUES ($1, $2, $3, $4, $5)', [app3.rows[0].id, userMap['nurse_joy'].id, userMap['jdoe'].id, 'Panadol', '500mg']);
 
     console.log('Database seeded successfully.');
     process.exit(0);

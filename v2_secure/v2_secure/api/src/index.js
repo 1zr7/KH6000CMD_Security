@@ -18,12 +18,28 @@ const app = express();
 // Security Headers
 app.use(helmet());
 
-// Rate Limiting
-const limiter = rateLimit({
+const { logEvent } = require('./utils/audit');
+
+// Rate Limiting (Global)
+const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // limit each IP to 100 requests per windowMs
+    max: 300, // limit each IP to 300 requests per windowMs
+    handler: (req, res, next, options) => {
+        logEvent('DDOS_WARNING', null, { ip: req.ip, endpoint: req.url, type: 'global_limit_exceeded' });
+        res.status(429).json({ error: 'Too Many Requests' });
+    }
 });
-app.use(limiter);
+app.use(globalLimiter);
+
+// Stricter Rate Limiting for Auth
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // limit each IP to 10 failed login attempts
+    handler: (req, res, next, options) => {
+        logEvent('BRUTE_FORCE_ATTEMPT', null, { ip: req.ip, endpoint: req.url });
+        res.status(429).json({ error: 'Too many login attempts, please try again later.' });
+    }
+});
 
 // CORS Config (Secure)
 const frontendUrl = process.env.FRONTEND_URL || 'https://v2-secure-fe.vercel.app';
@@ -46,7 +62,7 @@ app.use((req, res, next) => {
 // Auth routes are public (login, register)
 // MFA routes inside auth need checking, but verify does not need cookie if passing username + secret manually as implemented. 
 // Setup needs to be protected, but keeping auth simple for now.
-app.use('/auth', authRoutes);
+app.use('/auth', authLimiter, authRoutes);
 
 // Protected Routes
 app.use('/patients', authenticate, authorize(['patient', 'doctor', 'nurse', 'admin']), patientRoutes); // RBAC: Patients can see own? Need granular check inside. For now, allow all roles to access 'patients' route but filtering happens inside?

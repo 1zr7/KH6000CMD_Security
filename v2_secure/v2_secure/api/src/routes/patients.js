@@ -8,7 +8,7 @@ const { logEvent } = require('../utils/audit');
 // List all patients (Admin/Doctor/Nurse only)
 router.get('/', authenticate, authorize(['admin', 'doctor', 'nurse']), async (req, res, next) => {
     try {
-        const query = "SELECT * FROM patients";
+        const query = "SELECT user_id, name, dob FROM patients";
         const result = await db.query(query);
         await logEvent('VIEW_ALL_PATIENTS', req.user.id, { count: result.rows.length });
         res.json(result.rows);
@@ -26,7 +26,7 @@ router.get('/search', authenticate, authorize(['admin', 'doctor', 'nurse']), asy
             return res.status(400).json({ error: 'Search query required' });
         }
 
-        const query = 'SELECT * FROM patients WHERE name LIKE $1';
+        const query = 'SELECT user_id, name, dob FROM patients WHERE name LIKE $1';
         const result = await db.query(query, [`%${q}%`]);
         res.json(result.rows);
     } catch (err) {
@@ -57,7 +57,21 @@ router.get('/:id/appointments', authenticate, async (req, res, next) => {
       WHERE a.patient_id = $1
     `;
         const result = await db.query(query, [id]);
-        res.json(result.rows);
+
+        // Log PHI Access (if viewing someone else's data, relevant for staff)
+        if (req.user.id !== parseInt(id)) {
+            await logEvent('PHI_ACCESS', req.user.id, { target: 'patient_appointments', targetId: id });
+        }
+
+        const { decrypt } = require('../utils/encryption');
+
+        // Decrypt diagnosis
+        const decryptedRows = result.rows.map(row => ({
+            ...row,
+            diagnosis: row.diagnosis ? decrypt(row.diagnosis) : row.diagnosis
+        }));
+
+        res.json(decryptedRows);
     } catch (err) {
         next(err);
     }

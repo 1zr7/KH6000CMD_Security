@@ -1,4 +1,4 @@
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+const API_URL = 'http://localhost:4001';
 
 const request = async (endpoint, options = {}) => {
     const res = await fetch(`${API_URL}${endpoint}`, {
@@ -50,6 +50,7 @@ export const createUser = (data) => request('/admin/users', {
     body: JSON.stringify(data),
 });
 export const deleteUser = (id) => request(`/admin/users/${id}`, { method: 'DELETE' });
+export const getAuditLogs = (page = 1) => request(`/admin/logs?page=${page}`);
 
 export const getDoctorDetails = (doctorId) => request(`/doctor/${doctorId}/details`);
 export const assignNurse = (doctorId, nurseId) => request(`/doctor/${doctorId}/assign-nurse`, {

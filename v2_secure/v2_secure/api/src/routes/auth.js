@@ -51,17 +51,25 @@ router.post('/register', validateRegister, async (req, res, next) => {
             return res.status(400).json({ error: 'Username or Email already exists' });
         }
 
+        const { encrypt } = require('../utils/encryption');
+
+        // ...
+
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash(password, saltRounds);
 
+        // Encrypt Sensitive Data
+        const encryptedEmail = encrypt(email);
+        const encryptedAddress = address ? encrypt(address) : null;
+
         // Insert User
         const query = 'INSERT INTO users (username, password, role, email) VALUES ($1, $2, $3, $4) RETURNING id, username, role';
-        const result = await db.query(query, [username, passwordHash, userRole, email]);
+        const result = await db.query(query, [username, passwordHash, userRole, encryptedEmail]);
         const user = result.rows[0];
 
         // Create Profile
         if (userRole === 'patient') {
-            await db.query('INSERT INTO patients (user_id, name, dob, address) VALUES ($1, $2, $3, $4)', [user.id, name, dob, address]);
+            await db.query('INSERT INTO patients (user_id, name, dob, address) VALUES ($1, $2, $3, $4)', [user.id, name, dob, encryptedAddress]);
         } else if (userRole === 'doctor') {
             await db.query('INSERT INTO doctors (user_id, name, specialty) VALUES ($1, $2, $3)', [user.id, name, specialty]);
         } else if (userRole === 'nurse') {
@@ -84,9 +92,13 @@ router.post('/login', validateLogin, async (req, res, next) => {
 
         const { username, password } = req.body;
 
-        const query = 'SELECT * FROM users WHERE username = $1';
+        const query = 'SELECT id, username, password, email, role, otp_expires, otp_hash FROM users WHERE username = $1';
         const result = await db.query(query, [username]);
 
+        // ...
+        const { decrypt } = require('../utils/encryption');
+
+        // ... (In login route)
         if (result.rows.length > 0) {
             const user = result.rows[0];
             const match = await bcrypt.compare(password, user.password);
@@ -104,29 +116,30 @@ router.post('/login', validateLogin, async (req, res, next) => {
             // Store OTP
             await db.query('UPDATE users SET otp_hash = $1, otp_expires = $2 WHERE id = $3', [otpHash, expires, user.id]);
 
-            // Send Email (Mocking if no creds, but code structure is there)
-            // In a real app, you would handle email failures gracefully
+            // Decrypt Email
+            const { decrypt } = require('../utils/encryption');
+            const decryptedEmail = decrypt(user.email); // Decrypt email for use
+
+            // Send Email
             try {
                 if (config.email.user !== 'user@example.com') {
-                    console.log(`[AUTH] Sending OTP for ${username} to ${user.email}`);
+                    console.log(`[AUTH] Sending OTP for ${username} to ${decryptedEmail}`);
                     await transporter.sendMail({
                         from: config.email.user,
-                        to: user.email,
+                        to: decryptedEmail, // Use decrypted email
                         subject: 'Your Login Validation Code',
                         text: `Your code is: ${otp}`,
                     });
-                    console.log(`[AUTH] OTP sent to ${user.email}`);
+                    console.log(`[AUTH] OTP sent to ${decryptedEmail}`);
                 } else {
-                    console.log(`[DEV] OTP for ${username}: ${otp}`); // Dev logs for testing
+                    console.log(`[DEV] OTP for ${username}: ${otp}`);
                 }
             } catch (emailErr) {
                 console.error('[AUTH] Email failed', emailErr);
-                // In production, we might want to return 500 here if email is critical, 
-                // but for now we proceed to let user know they need an OTP. 
-                // However, if email fails, they can't login.
-                return res.status(500).json({ error: 'Failed to send OTP email', details: emailErr.message });
+                return res.status(500).json({ error: 'Failed to send OTP email' });
             }
 
+            await logEvent('2FA_GENERATED', user.id, { method: 'email' });
             res.json({ message: 'OTP sent to email', mfaRequired: true, username: user.username });
         } else {
             await logEvent('LOGIN_FAILED', null, { username, reason: 'User not found' });
@@ -145,7 +158,7 @@ router.post('/verify-otp', async (req, res, next) => {
             return res.status(400).json({ error: 'Username and OTP are required' });
         }
 
-        const result = await db.query('SELECT * FROM users WHERE username = $1', [username]);
+        const result = await db.query('SELECT id, username, role, otp_expires, otp_hash FROM users WHERE username = $1', [username]);
         if (result.rows.length === 0) return res.status(401).json({ error: 'Invalid request' });
 
         const user = result.rows[0];

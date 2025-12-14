@@ -22,6 +22,10 @@ router.get('/:doctorId/details', authenticate, authorize(['doctor', 'admin']), a
             WHERE d.user_id = $1
         `;
         const result = await db.query(query, [doctorId]);
+
+        // Log PHI Access
+        await logEvent('PHI_ACCESS', req.user.id, { target: 'doctor_profile', targetId: doctorId });
+
         res.json(result.rows[0]);
     } catch (err) {
         next(err);
@@ -68,6 +72,8 @@ router.post('/:doctorId/assign-patient', authenticate, authorize(['doctor', 'adm
     }
 });
 
+const { encrypt, decrypt } = require('../utils/encryption');
+
 // Write or Update diagnosis
 router.post('/appointments/:id/diagnosis', authenticate, authorize(['doctor']), async (req, res, next) => {
     try {
@@ -82,6 +88,7 @@ router.post('/appointments/:id/diagnosis', authenticate, authorize(['doctor']), 
         // Verify appointment belongs to doctor
         const apptQuery = 'SELECT * FROM appointments WHERE id = $1 AND doctor_id = $2';
         const apptResult = await db.query(apptQuery, [id, doctorId]);
+
         if (apptResult.rows.length === 0) {
             return res.status(403).json({ error: 'Forbidden: Appointment not found or not yours' });
         }
@@ -90,15 +97,22 @@ router.post('/appointments/:id/diagnosis', authenticate, authorize(['doctor']), 
         const checkQuery = 'SELECT * FROM diagnoses WHERE appointment_id = $1';
         const checkResult = await db.query(checkQuery, [id]);
 
+        const encryptedDescription = encrypt(description);
+
         let result;
         if (checkResult.rows.length > 0) {
             // Update
             const query = 'UPDATE diagnoses SET description = $1 WHERE appointment_id = $2 RETURNING *';
-            result = await db.query(query, [description, id]);
+            result = await db.query(query, [encryptedDescription, id]);
         } else {
             // Insert
             const query = 'INSERT INTO diagnoses (appointment_id, doctor_id, description) VALUES ($1, $2, $3) RETURNING *';
-            result = await db.query(query, [id, doctorId, description]);
+            result = await db.query(query, [id, doctorId, encryptedDescription]);
+        }
+
+        // Decrypt for response
+        if (result.rows[0]) {
+            result.rows[0].description = decrypt(result.rows[0].description);
         }
 
         // Also update appointment status
@@ -163,7 +177,14 @@ router.get('/:doctorId/appointments', authenticate, authorize(['doctor', 'admin'
       GROUP BY a.id, p.name, p.id, d.id, d.description, doc.name
     `;
         const result = await db.query(query, [doctorId]);
-        res.json(result.rows);
+
+        // Decrypt diagnoses
+        const decryptedRows = result.rows.map(row => ({
+            ...row,
+            diagnosis_description: row.diagnosis_description ? decrypt(row.diagnosis_description) : row.diagnosis_description
+        }));
+
+        res.json(decryptedRows);
     } catch (err) {
         next(err);
     }

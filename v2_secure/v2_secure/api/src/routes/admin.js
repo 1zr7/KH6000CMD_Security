@@ -12,10 +12,10 @@ router.use(authenticate, authorize(['admin']));
 // Create user (Admin only)
 router.post('/users', async (req, res, next) => {
     try {
-        const { username, password, role, name, specialty } = req.body;
+        const { username, password, role, email, name, specialty } = req.body;
 
         // Input Validation
-        if (!username || !password || !role) {
+        if (!username || !password || !role || !email) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
         if (password.length < 8) {
@@ -30,8 +30,8 @@ router.post('/users', async (req, res, next) => {
         const hash = await bcrypt.hash(password, saltRounds);
 
         // Parameterized Query
-        const userQuery = 'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id';
-        const userRes = await db.query(userQuery, [username, hash, role]);
+        const userQuery = 'INSERT INTO users (username, password, role, email) VALUES ($1, $2, $3, $4) RETURNING id';
+        const userRes = await db.query(userQuery, [username, hash, role, email]);
         const userId = userRes.rows[0].id;
 
         if (role === 'doctor') {
@@ -40,7 +40,8 @@ router.post('/users', async (req, res, next) => {
             await db.query('INSERT INTO nurses (user_id, name) VALUES ($1, $2)', [userId, name]);
         }
 
-        res.status(201).json({ id: userId, username, role, name });
+        await logEvent('USER_CREATED', req.user.id, { createdUser: username, role });
+        res.status(201).json({ id: userId, username, role, name, email });
     } catch (err) {
         next(err);
     }
@@ -53,6 +54,7 @@ router.delete('/users/:id', async (req, res, next) => {
         if (isNaN(parseInt(id))) return res.status(400).json({ error: 'Invalid User ID' });
         const query = 'DELETE FROM users WHERE id = $1';
         await db.query(query, [id]);
+        await logEvent('USER_DELETED', req.user.id, { deletedUserId: id });
         res.json({ message: 'User deleted' });
     } catch (err) {
         next(err);
@@ -64,6 +66,38 @@ router.get('/users', async (req, res, next) => {
     try {
         const result = await db.query('SELECT id, username, role FROM users');
         res.json(result.rows);
+    } catch (err) {
+        next(err);
+    }
+});
+
+// Get Audit Logs (Admin only, Read-only, Paginated)
+router.get('/logs', async (req, res, next) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 50;
+        const offset = (page - 1) * limit;
+
+        const countResult = await db.query('SELECT COUNT(*) FROM audit_log');
+        const total = parseInt(countResult.rows[0].count);
+
+        const query = `
+            SELECT a.id, a.action, a.actor_id, u.username as actor_name, a.timestamp 
+            FROM audit_log a
+            LEFT JOIN users u ON a.actor_id = u.id
+            ORDER BY a.timestamp DESC 
+            LIMIT $1 OFFSET $2
+        `;
+        const result = await db.query(query, [limit, offset]);
+
+        res.json({
+            logs: result.rows,
+            pagination: {
+                total,
+                page,
+                pages: Math.ceil(total / limit)
+            }
+        });
     } catch (err) {
         next(err);
     }
