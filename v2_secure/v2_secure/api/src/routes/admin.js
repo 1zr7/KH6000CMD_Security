@@ -64,7 +64,7 @@ router.delete('/users/:id', authenticate, authorize(['admin']), async (req, res,
 });
 
 // List all users (helper for admin UI and Doctor assignment)
-router.get('/users', authenticate, async (req, res, next) => {
+router.get('/users', authenticate, authorize(['admin', 'doctor', 'nurse']), async (req, res, next) => {
     try {
         const result = await db.query('SELECT id, username, role FROM users');
         res.json(result.rows);

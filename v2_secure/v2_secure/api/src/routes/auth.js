@@ -8,7 +8,7 @@ const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const config = require('../config');
 const { logEvent } = require('../utils/audit');
-const { JWT_SECRET } = require('../middleware/auth');
+const { JWT_SECRET, authenticate } = require('../middleware/auth');
 const { encrypt, decrypt } = require('../utils/encryption');
 
 // Email Transporter
@@ -84,6 +84,10 @@ router.post('/register', validateRegister, async (req, res, next) => {
     }
 });
 
+router.get('/me', authenticate, (req, res) => {
+    res.json(req.user);
+});
+
 router.post('/login', validateLogin, async (req, res, next) => {
     try {
         const errors = validationResult(req);
@@ -117,7 +121,7 @@ router.post('/login', validateLogin, async (req, res, next) => {
             // Store OTP
             await db.query('UPDATE users SET otp_hash = $1, otp_expires = $2 WHERE id = $3', [otpHash, expires, user.id]);
 
-            
+
             // Decrypt Email
 
             const decryptedEmail = decrypt(user.email); // Decrypt email for use
@@ -188,8 +192,8 @@ router.post('/verify-otp', async (req, res, next) => {
 
         res.cookie('token', token, {
             httpOnly: true,
-            secure: true, 
-            sameSite: 'none', 
+            secure: true,
+            sameSite: 'none',
             maxAge: 30 * 60 * 1000 // 30 mins
         });
 

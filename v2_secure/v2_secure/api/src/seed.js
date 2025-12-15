@@ -134,7 +134,7 @@ const seed = async () => {
 
     // Seed Profiles
     // Doctor
-    await pool.query('INSERT INTO doctors (user_id, name, specialty) VALUES ($1, $2, $3)', [userMap['dr_house'].id, 'Dr. Ahmed Khaled', 'Internist']);
+    await pool.query('INSERT INTO doctors (user_id, name, specialty, assigned_nurse_id) VALUES ($1, $2, $3, $4)', [userMap['dr_house'].id, 'Dr. Ahmed Khaled', 'Internist', userMap['nurse_joy'].id]);
 
     // Nurse
     await pool.query('INSERT INTO nurses (user_id, name) VALUES ($1, $2)', [userMap['nurse_joy'].id, 'Nurse Mona']);

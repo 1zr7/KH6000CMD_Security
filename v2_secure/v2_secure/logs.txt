@@ -1,0 +1,60 @@
+﻿api-1  | 
+api-1  | added 1 package, removed 42 packages, and audited 474 packages in 5s
+api-1  | 
+api-1  | 69 packages are looking for funding
+api-1  |   run `npm fund` for details
+api-1  | 
+api-1  | found 0 vulnerabilities
+api-1  | 
+api-1  | > v1_insecure-api@1.0.0 start
+api-1  | > node src/index.js
+api-1  | 
+api-1  | Starting API index.js...
+api-1  | Loading middleware/auth.js
+api-1  | /app/src/routes/auth.js:87
+api-1  | router.get('/me', authenticate, (req, res) => {
+api-1  |                   ^
+api-1  | 
+api-1  | ReferenceError: authenticate is not defined
+api-1  |     at Object.<anonymous> (/app/src/routes/auth.js:87:19)
+api-1  |     at Module._compile (node:internal/modules/cjs/loader:1364:14)
+api-1  |     at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+api-1  |     at Module.load (node:internal/modules/cjs/loader:1203:32)
+api-1  |     at Module._load (node:internal/modules/cjs/loader:1019:12)
+api-1  |     at Module.require (node:internal/modules/cjs/loader:1231:19)
+api-1  |     at require (node:internal/modules/helpers:177:18)
+api-1  |     at Object.<anonymous> (/app/src/index.js:11:20)
+api-1  |     at Module._compile (node:internal/modules/cjs/loader:1364:14)
+api-1  |     at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+api-1  | 
+api-1  | Node.js v18.20.8
+api-1  | 
+api-1  | up to date, audited 474 packages in 2s
+api-1  | 
+api-1  | 69 packages are looking for funding
+api-1  |   run `npm fund` for details
+api-1  | 
+api-1  | found 0 vulnerabilities
+api-1  | 
+api-1  | > v1_insecure-api@1.0.0 start
+api-1  | > node src/index.js
+api-1  | 
+api-1  | Starting API index.js...
+api-1  | Loading middleware/auth.js
+api-1  | /app/src/routes/auth.js:87
+api-1  | router.get('/me', authenticate, (req, res) => {
+api-1  |                   ^
+api-1  | 
+api-1  | ReferenceError: authenticate is not defined
+api-1  |     at Object.<anonymous> (/app/src/routes/auth.js:87:19)
+api-1  |     at Module._compile (node:internal/modules/cjs/loader:1364:14)
+api-1  |     at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+api-1  |     at Module.load (node:internal/modules/cjs/loader:1203:32)
+api-1  |     at Module._load (node:internal/modules/cjs/loader:1019:12)
+api-1  |     at Module.require (node:internal/modules/cjs/loader:1231:19)
+api-1  |     at require (node:internal/modules/helpers:177:18)
+api-1  |     at Object.<anonymous> (/app/src/index.js:11:20)
+api-1  |     at Module._compile (node:internal/modules/cjs/loader:1364:14)
+api-1  |     at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+api-1  | 
+api-1  | Node.js v18.20.8

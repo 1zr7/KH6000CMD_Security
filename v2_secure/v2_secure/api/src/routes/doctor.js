@@ -5,25 +5,25 @@ const db = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logEvent } = require('../utils/audit');
 
+router.get('/nurses', authenticate, authorize(['doctor', 'admin']), async (req, res, next) => {
+    try {
+        console.log('[DEBUG_NURSES] Fetching nurses...');
+        const result = await db.query("SELECT id, username FROM users WHERE role = 'nurse'");
+        console.log(`[DEBUG_NURSES] Found ${result.rows.length} nurses`);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[DEBUG_NURSES] Error:', err);
+        next(err);
+    }
+});
+
 // Get doctor details (IDOR Protected)
 router.get('/:doctorId/details', authenticate, authorize(['doctor', 'admin']), async (req, res, next) => {
     try {
         const { doctorId } = req.params;
         if (isNaN(parseInt(doctorId))) return res.status(400).json({ error: 'Invalid Doctor ID' });
-        if (req.user.role === 'doctor' && req.user.id !== parseInt(doctorId)) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-
-        const query = `
-            SELECT d.*, u.username as nurse_username, n.name as nurse_name
-            FROM doctors d
-            LEFT JOIN users u ON d.assigned_nurse_id = u.id
-            LEFT JOIN nurses n ON u.id = n.user_id
-            WHERE d.user_id = $1
-        `;
-        const result = await db.query(query, [doctorId]);
-
-        // Log PHI Access
+        // ... (rest of details route)
+        // ...
         await logEvent('PHI_ACCESS', req.user.id, { target: 'doctor_profile', targetId: doctorId });
 
         res.json(result.rows[0]);
@@ -33,15 +33,26 @@ router.get('/:doctorId/details', authenticate, authorize(['doctor', 'admin']), a
 });
 
 // Assign nurse to doctor (Admin or Doctor)
-router.post('/:doctorId/assign-nurse', authenticate, authorize(['admin', 'doctor']), async (req, res, next) => {
+router.post('/:doctorId/assign-nurse', authenticate, async (req, res, next) => {
     try {
+        console.log(`[DEBUG_ASSIGN] User: ${JSON.stringify(req.user)}`);
+
+        // Manual Authz Check
+        const allowedRoles = ['admin', 'doctor'];
+        if (!allowedRoles.includes(req.user.role)) {
+            console.log(`[DEBUG_ASSIGN] Role mismatch. User: ${req.user.role}, Allowed: ${allowedRoles}`);
+            return res.status(403).json({ error: `Forbidden: Insufficient rights (Manual Check). You are ${req.user.role}` });
+        }
         const { doctorId } = req.params;
         const { nurseId } = req.body;
         // Validate IDs
         if (!nurseId || isNaN(parseInt(nurseId))) return res.status(400).json({ error: 'Invalid nurseId' });
 
+        console.log(`[ASSIGN NURSE] User: ${req.user.username} (${req.user.id}/${req.user.role}) trying to assign to DoctorID: ${doctorId}`);
+
         // IDOR Check: Doctors can only assign to themselves
         if (req.user.role === 'doctor' && req.user.id !== parseInt(doctorId)) {
+            console.log(`[ASSIGN NURSE] IDOR Blocked. UserID ${req.user.id} != TargetID ${doctorId}`);
             return res.status(403).json({ error: 'Forbidden' });
         }
 

@@ -52,6 +52,8 @@ export const createUser = (data) => request('/admin/users', {
 export const deleteUser = (id) => request(`/admin/users/${id}`, { method: 'DELETE' });
 export const getAuditLogs = (page = 1) => request(`/admin/logs?page=${page}`);
 
+export const getNurses = () => request('/doctor/nurses');
+
 export const getDoctorDetails = (doctorId) => request(`/doctor/${doctorId}/details`);
 export const assignNurse = (doctorId, nurseId) => request(`/doctor/${doctorId}/assign-nurse`, {
     method: 'POST',

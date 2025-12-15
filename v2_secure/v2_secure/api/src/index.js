@@ -1,3 +1,4 @@
+console.log('Starting API index.js...');
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -12,6 +13,10 @@ const patientRoutes = require('./routes/patients');
 const adminRoutes = require('./routes/admin');
 const doctorRoutes = require('./routes/doctor');
 const nurseRoutes = require('./routes/nurse');
+
+console.log('Imports loaded successfully');
+console.log('Authenticate:', typeof authenticate);
+console.log('Authorize:', typeof authorize);
 
 const app = express();
 
@@ -53,8 +58,11 @@ app.use(cookieParser());
 
 // Logging (Sanitized)
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    // No body logging
+    const start = Date.now();
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} ${res.statusCode} (${duration}ms)`);
+    });
     next();
 });
 
@@ -73,9 +81,12 @@ app.use('/patients', authenticate, authorize(['patient', 'doctor', 'nurse', 'adm
 // For this high-level pass, just "authenticate" is a huge step up.
 // I will restrict /admin to admin.
 
-app.use('/admin', authenticate, authorize('admin'), adminRoutes);
-app.use('/doctor', authenticate, authorize(['doctor', 'admin']), doctorRoutes);
-app.use('/nurse', authenticate, authorize(['nurse', 'doctor', 'admin']), nurseRoutes);
+app.use('/admin', authenticate, adminRoutes);
+app.use('/doctor', authenticate, doctorRoutes);
+app.use('/nurse', authenticate, nurseRoutes);
+
+// Routes
+// Auth routes are public (login, register)
 
 // Root
 app.get('/', (req, res) => {

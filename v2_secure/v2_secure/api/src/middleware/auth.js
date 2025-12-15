@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
 
+console.log('Loading middleware/auth.js');
+
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key_change_me_in_prod';
 
 // Authentication Middleware
@@ -31,6 +33,7 @@ const authorize = (roles = []) => {
         }
 
         if (roles.length && !roles.includes(req.user.role)) {
+            console.log(`[AUTH FAIL] User: ${req.user.username} (Role: ${req.user.role}) attempted to access resource requiring: ${roles.join(', ')}`);
             return res.status(403).json({ error: 'Forbidden: Insufficient rights' });
         }
 
